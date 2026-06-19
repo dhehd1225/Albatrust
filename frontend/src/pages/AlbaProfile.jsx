@@ -3,51 +3,46 @@ import { CalendarCheck, Briefcase } from 'lucide-react'
 import TrustScore from '../components/TrustScore'
 import Badge from '../components/Badge'
 import StarRating from '../components/StarRating'
+import { useEffect, useState } from 'react'
 
-const DUMMY_PROFILES = {
-  "1": {
-    id: "1", name: "김민준", trustScore: 92,
-    badges: [
-      { id: "no_noshow", name: "노쇼 제로", icon: "shield-check", description: "노쇼 없이 모든 면접에 출석" },
-      { id: "no_late", name: "지각 없음", icon: "clock", description: "한 번도 지각하지 않은 성실한 알바생" },
-      { id: "boss_recommend", name: "사장님 추천", icon: "thumbs-up", description: "사장님이 직접 추천한 알바생" },
-      { id: "long_term", name: "장기 근속", icon: "award", description: "6개월 이상 꾸준히 근무" },
-    ],
-    interviewAttendance: 12, totalInterviews: 12,
-    workHistory: [
-      { store: "스타벅스 강남점", period: "2024.03 ~ 2024.09", rating: 5 },
-      { store: "CU 역삼점", period: "2024.10 ~ 현재", rating: 5 },
-    ],
-  },
-  "2": {
-    id: "2", name: "이서연", trustScore: 78,
-    badges: [
-      { id: "no_noshow", name: "노쇼 제로", icon: "shield-check", description: "노쇼 없이 모든 면접에 출석" },
-      { id: "boss_recommend", name: "사장님 추천", icon: "thumbs-up", description: "사장님이 직접 추천한 알바생" },
-    ],
-    interviewAttendance: 8, totalInterviews: 9,
-    workHistory: [
-      { store: "이디야커피 서초점", period: "2024.06 ~ 2024.12", rating: 4 },
-    ],
-  },
-  "3": {
-    id: "3", name: "박지호", trustScore: 45,
-    badges: [],
-    interviewAttendance: 3, totalInterviews: 7,
-    workHistory: [
-      { store: "GS25 신촌점", period: "2024.01 ~ 2024.03", rating: 3 },
-    ],
-  },
-}
+const API_BASE = 'http://localhost:8000'
 
 export default function AlbaProfile() {
   const { id } = useParams()
-  const profile = DUMMY_PROFILES[id] || null
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [profile, setProfile] = useState(null)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`${API_BASE}/api/alba/${id}`)
+        const payload = await res.json()
+        if (!res.ok) {
+          throw new Error(payload?.detail || '알바생 프로필을 가져오지 못했습니다.')
+        }
+        setProfile(payload)
+        setError('')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '알바생 프로필을 가져오지 못했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [id])
+
+  if (loading) {
+    return <p className="text-center py-12 text-gray-400">프로필을 불러오는 중입니다...</p>
+  }
 
   if (!profile) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-400">알바생 프로필을 찾을 수 없습니다.</p>
+        {error ? <p className="text-sm text-red-400 mt-2">{error}</p> : null}
       </div>
     )
   }

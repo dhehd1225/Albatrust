@@ -1,21 +1,104 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { MapPin, Calendar, Clock, FileText, CheckCircle2, UserCheck, Store } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { MapPin, Calendar, Clock, FileText, CheckCircle2, UserCheck, Store, QrCode, Smartphone } from 'lucide-react'
+
+const API_BASE = 'http://localhost:8000'
 
 export default function InterviewView() {
   const { id } = useParams()
   const [tab, setTab] = useState('alba')
-  const [confirmed, setConfirmed] = useState(false)
-  const [attended, setAttended] = useState(null) // null = 미확인, true = 출석, false = 노쇼
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [interview, setInterview] = useState(null)
 
-  const interview = {
-    id,
-    storeName: '스타벅스 강남점',
-    albaName: '김민준',
-    date: '2025-06-15',
-    time: '14:00',
-    location: '매장 내 (강남역 2번 출구 도보 3분)',
-    notes: '편한 복장으로 오시면 됩니다.',
+  const loadInterview = async () => {
+    const res = await fetch(`${API_BASE}/api/interviews/${id}`)
+    const payload = await res.json()
+
+    if (!res.ok) {
+      throw new Error(payload?.detail || '면접 정보를 불러오지 못했습니다.')
+    }
+
+    setInterview(payload)
+  }
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        await loadInterview()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '면접 정보를 불러오지 못했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    init()
+  }, [id])
+
+  const confirmInterview = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/interviews/${id}/confirm`, {
+        method: 'PUT',
+      })
+      const payload = await res.json()
+
+      if (!res.ok) {
+        throw new Error(payload?.detail || '면접 확정 처리에 실패했습니다.')
+      }
+
+      setInterview(payload)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '면접 확정 처리에 실패했습니다.')
+    }
+  }
+
+  const submitAttendance = async (present) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/interviews/${id}/attendance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          present,
+          method: 'manual',
+        }),
+      })
+
+      const payload = await res.json()
+
+      if (!res.ok) {
+        throw new Error(payload?.detail || '출석 기록 처리에 실패했습니다.')
+      }
+
+      setInterview(payload)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '출석 기록 처리에 실패했습니다.')
+    }
+  }
+
+  if (loading) {
+    return <p className="text-center text-gray-500 py-12">면접 정보를 불러오는 중입니다...</p>
+  }
+
+  if (!interview) {
+    return (
+      <p className="text-center text-gray-500 py-12">{error || '면접 정보를 찾을 수 없습니다.'}</p>
+    )
+  }
+
+  const confirmed = Boolean(interview.confirmed)
+  const attended = interview.attendance?.present
+  const qrScanLink = `${window.location.origin}/scan/${interview.qrToken}`
+  const nfcScanLink = `${window.location.origin}/scan/${interview.nfcToken}`
+  const attendanceHistory = interview.attendanceHistory || []
+  const methodLabel = (method) => {
+    if (method === 'qr') return 'QR 스캔'
+    if (method === 'nfc') return 'NFC 스캔'
+    if (method === 'manual') return '수동 입력'
+    return '기타'
   }
 
   const infoCards = (
@@ -51,9 +134,36 @@ export default function InterviewView() {
     </div>
   )
 
+  const attendanceHistorySection = (
+    <div className="bg-bg rounded-xl p-4 space-y-3 mb-6">
+      <p className="text-sm font-semibold text-navy">출근(출석) 이력</p>
+      {attendanceHistory.length === 0 ? (
+        <p className="text-xs text-gray-400">아직 출근/출석 기록이 없습니다.</p>
+      ) : (
+        <div className="space-y-2">
+          {attendanceHistory.map((entry, index) => (
+            <div
+              key={`${entry.recordedAt}-${entry.method}-${index}`}
+              className={`rounded-lg p-3 text-xs border ${
+                entry.present ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+              }`}
+            >
+              <div className={`font-semibold ${entry.present ? 'text-green-700' : 'text-red-700'}`}>
+                {entry.present ? '출석' : '노쇼'}
+              </div>
+              <div className="text-gray-500 mt-1 flex justify-between gap-3">
+                <span>{methodLabel(entry.method)}</span>
+                <span>{entry.recordedAt || '시간 미기록'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="max-w-lg mx-auto py-8">
-      {/* Tab */}
       <div className="flex bg-white rounded-xl p-1 shadow-sm border border-gray-100 mb-4">
         <button
           onClick={() => setTab('alba')}
@@ -74,7 +184,6 @@ export default function InterviewView() {
       </div>
 
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-        {/* 알바생 탭 */}
         {tab === 'alba' && (
           <>
             {confirmed ? (
@@ -95,6 +204,7 @@ export default function InterviewView() {
             )}
 
             {infoCards}
+            {attendanceHistorySection}
 
             <div className="p-4 bg-navy/5 rounded-xl mb-6">
               <div className="flex justify-between text-sm">
@@ -103,9 +213,16 @@ export default function InterviewView() {
               </div>
             </div>
 
+            <div className="bg-bg rounded-xl p-4 space-y-2 text-sm mb-6">
+              <p className="text-xs text-gray-400">QR 스캔 링크</p>
+              <p className="text-blue break-all">{qrScanLink}</p>
+              <p className="text-xs text-gray-400 mt-2">NFC 스캔 링크</p>
+              <p className="text-blue break-all">{nfcScanLink}</p>
+            </div>
+
             {!confirmed && (
               <button
-                onClick={() => setConfirmed(true)}
+                onClick={confirmInterview}
                 className="w-full py-3.5 bg-blue text-white font-medium rounded-xl hover:bg-blue-light transition-colors text-lg"
               >
                 면접 확정하기
@@ -114,7 +231,6 @@ export default function InterviewView() {
           </>
         )}
 
-        {/* 사장님 탭 */}
         {tab === 'boss' && (
           <>
             <div className="text-center mb-6">
@@ -124,8 +240,11 @@ export default function InterviewView() {
               </p>
             </div>
 
-            {/* 알바생 확정 상태 */}
-            <div className={`p-4 rounded-xl mb-4 ${confirmed ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
+            <div
+              className={`p-4 rounded-xl mb-4 ${
+                confirmed ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
+              }`}
+            >
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">알바생 면접 확정</span>
                 {confirmed ? (
@@ -139,19 +258,19 @@ export default function InterviewView() {
             </div>
 
             {infoCards}
+            {attendanceHistorySection}
 
-            {/* 출석 확인 */}
             {attended === null ? (
               <div className="space-y-3">
                 <p className="text-sm text-gray-500 text-center mb-2">알바생이 면접에 출석했나요?</p>
                 <button
-                  onClick={() => setAttended(true)}
+                  onClick={() => submitAttendance(true)}
                   className="w-full py-3.5 bg-green-500 text-white font-medium rounded-xl hover:bg-green-600 transition-colors text-lg"
                 >
                   출석 확인
                 </button>
                 <button
-                  onClick={() => setAttended(false)}
+                  onClick={() => submitAttendance(false)}
                   className="w-full py-3.5 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors text-lg"
                 >
                   노쇼 (불참)
@@ -159,12 +278,12 @@ export default function InterviewView() {
               </div>
             ) : (
               <div className={`p-5 rounded-xl text-center ${attended ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 ${attended ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {attended ? (
-                    <CheckCircle2 className="w-7 h-7 text-green-600" />
-                  ) : (
-                    <span className="text-2xl">&#10005;</span>
-                  )}
+                <div
+                  className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                    attended ? 'bg-green-100' : 'bg-red-100'
+                  }`}
+                >
+                  {attended ? <CheckCircle2 className="w-7 h-7 text-green-600" /> : <span className="text-2xl">&#10005;</span>}
                 </div>
                 <p className={`font-bold text-lg ${attended ? 'text-green-700' : 'text-red-700'}`}>
                   {attended ? '출석 확인 완료' : '노쇼 처리 완료'}
@@ -175,16 +294,34 @@ export default function InterviewView() {
                     : `${interview.albaName}님의 노쇼가 기록되었습니다.`}
                 </p>
                 <button
-                  onClick={() => setAttended(null)}
+                  onClick={() => {
+                    loadInterview().catch(() => {
+                      setError('데이터를 불러오지 못했습니다.')
+                    })
+                  }}
                   className="mt-3 text-sm text-gray-400 hover:text-navy underline"
                 >
-                  다시 선택하기
+                  상태 새로고침
                 </button>
               </div>
             )}
+
+            <div className="mt-6 border-t border-gray-100 pt-6 space-y-2">
+              <p className="text-sm text-gray-500">QR/NFC 스캔 링크</p>
+              <p className="text-xs text-blue flex items-center gap-1 break-all">
+                <QrCode className="w-4 h-4" />
+                <Link to={`/scan/${interview.qrToken}`}>{qrScanLink}</Link>
+              </p>
+              <p className="text-xs text-blue flex items-center gap-1 break-all">
+                <Smartphone className="w-4 h-4" />
+                <Link to={`/scan/${interview.nfcToken}`}>{nfcScanLink}</Link>
+              </p>
+            </div>
           </>
         )}
       </div>
+
+      {error ? <p className="text-sm text-red-500 mt-3">{error}</p> : null}
     </div>
   )
 }

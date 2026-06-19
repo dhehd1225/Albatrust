@@ -7,6 +7,7 @@ import CareerRequest from './pages/CareerRequest'
 import ContractVault from './pages/ContractVault'
 import InterviewCreate from './pages/InterviewCreate'
 import InterviewView from './pages/InterviewView'
+import ScanLanding from './pages/ScanLanding'
 import AlbaProfile from './pages/AlbaProfile'
 import StoreProfile from './pages/StoreProfile'
 
@@ -122,6 +123,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/scan/:token" element={<ScanLanding />} />
           <Route path="/alba/:id" element={<AlbaProfile />} />
           <Route path="/store/:id" element={<StoreProfile />} />
         </Routes>

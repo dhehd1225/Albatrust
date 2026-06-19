@@ -6,6 +6,12 @@ export default function AuthPage({ mode, onAuth }) {
   const navigate = useNavigate()
   const location = useLocation()
   const isSignup = mode === 'signup'
+  const testAccount = {
+    name: '테스트 사용자',
+    email: 'test@albatrust.local',
+    password: 'test1234',
+    role: 'alba',
+  }
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -29,6 +35,21 @@ export default function AuthPage({ mode, onAuth }) {
 
     onAuth(nextUser)
     navigate(location.state?.from || '/career', { replace: true })
+  }
+
+  const handleTestLogin = (event) => {
+    event.preventDefault()
+    onAuth(testAccount)
+    navigate(location.state?.from || '/career', { replace: true })
+  }
+
+  const fillTestAccount = () => {
+    setForm({
+      name: testAccount.name,
+      email: testAccount.email,
+      password: testAccount.password,
+      role: testAccount.role,
+    })
   }
 
   return (
@@ -128,6 +149,22 @@ export default function AuthPage({ mode, onAuth }) {
           className="w-full py-3 bg-blue text-white font-medium rounded-xl hover:bg-blue-light transition-colors"
         >
           {isSignup ? '회원가입 후 내 경력 보기' : '로그인하고 내 경력 보기'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleTestLogin}
+          className="w-full py-3 bg-navy text-white font-medium rounded-xl hover:bg-navy-light transition-colors"
+        >
+          테스트 계정으로 바로 로그인
+        </button>
+
+        <button
+          type="button"
+          onClick={fillTestAccount}
+          className="w-full py-2 border border-gray-200 text-gray-600 rounded-xl text-sm hover:border-blue hover:text-blue transition-colors"
+        >
+          테스트 계정 정보 자동입력
         </button>
       </form>
 

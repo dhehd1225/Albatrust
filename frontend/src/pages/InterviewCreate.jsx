@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarCheck, Copy, Check, ExternalLink } from 'lucide-react'
+import { CalendarCheck, Copy, Check, ExternalLink, QrCode, Smartphone } from 'lucide-react'
+
+const API_BASE = 'http://localhost:8000'
 
 export default function InterviewCreate() {
   const [form, setForm] = useState({
@@ -13,21 +15,40 @@ export default function InterviewCreate() {
   })
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
-      const fakeId = Math.random().toString(36).substring(2, 10)
-      setResult({ id: fakeId, ...form })
-      setLoading(false)
-    }, 500)
+    setError('')
+    fetch(`${API_BASE}/api/interviews`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(form),
+    })
+      .then(async (res) => {
+        const payload = await res.json()
+        if (!res.ok) {
+          throw new Error(payload?.detail || '면접 생성에 실패했습니다.')
+        }
+        setResult(payload)
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : '면접 생성에 실패했습니다.')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
   const interviewLink = result
     ? `${window.location.origin}/interview/${result.id}`
     : ''
+  const qrScanLink = result ? `${window.location.origin}/scan/${result.qrToken}` : ''
+  const nfcScanLink = result ? `${window.location.origin}/scan/${result.nfcToken}` : ''
 
   const handleCopy = () => {
     navigator.clipboard.writeText(interviewLink)
@@ -57,6 +78,24 @@ export default function InterviewCreate() {
               >
                 {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-400" />}
               </button>
+            </div>
+          </div>
+
+          <div className="bg-bg rounded-xl p-4 mb-6 space-y-3">
+            <div>
+              <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                <QrCode className="w-3 h-3" /> QR 스캔 링크
+              </p>
+              <code className="text-sm text-blue break-all">{qrScanLink}</code>
+              <p className="text-xs text-gray-400 mt-1">QR 스티커나 배너에 넣을 링크입니다.</p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                <Smartphone className="w-3 h-3" /> NFC 스티커 링크
+              </p>
+              <code className="text-sm text-blue break-all">{nfcScanLink}</code>
+              <p className="text-xs text-gray-400 mt-1">NFC 태그 URL로 연동됩니다.</p>
             </div>
           </div>
 
@@ -96,6 +135,12 @@ export default function InterviewCreate() {
             >
               미리보기 <ExternalLink className="w-3 h-3" />
             </Link>
+            <button
+              onClick={() => { navigator.clipboard.writeText(qrScanLink) }}
+              className="flex-1 py-3 rounded-xl border border-blue text-blue text-sm font-medium hover:bg-blue/5 transition-colors"
+            >
+              QR 링크 복사
+            </button>
           </div>
         </div>
       </div>
@@ -109,7 +154,7 @@ export default function InterviewCreate() {
         <p className="text-gray-400 text-sm">알바생에게 보낼 면접 확정 링크를 생성합니다</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
         <div>
           <label className="block text-sm font-medium text-navy mb-1">매장명</label>
           <input
@@ -187,6 +232,7 @@ export default function InterviewCreate() {
         >
           {loading ? '생성 중...' : '면접 링크 생성하기'}
         </button>
+        {error ? <p className="text-sm text-red-500">{error}</p> : null}
       </form>
     </div>
   )
