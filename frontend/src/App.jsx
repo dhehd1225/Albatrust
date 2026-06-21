@@ -7,6 +7,8 @@ import CareerRequest from './pages/CareerRequest'
 import ContractVault from './pages/ContractVault'
 import InterviewCreate from './pages/InterviewCreate'
 import InterviewView from './pages/InterviewView'
+import StoreManager from './pages/StoreManager'
+import StoreDetail from './pages/StoreDetail'
 import ScanLanding from './pages/ScanLanding'
 import AlbaProfile from './pages/AlbaProfile'
 import StoreProfile from './pages/StoreProfile'
@@ -54,6 +56,9 @@ function App() {
                 </Link>
                 <Link to="/contracts" className="hover:text-blue-light transition-colors">
                   계약서 보관함
+                </Link>
+                <Link to="/attendance" className="hover:text-blue-light transition-colors">
+                  내 가게
                 </Link>
               </>
             )}
@@ -123,15 +128,27 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/attendance"
+            element={
+              <ProtectedRoute user={user}>
+                <StoreManager user={user} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/attendance/:storeId"
+            element={
+              <ProtectedRoute user={user}>
+                <StoreDetail />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/scan/:token" element={<ScanLanding />} />
           <Route path="/alba/:id" element={<AlbaProfile />} />
           <Route path="/store/:id" element={<StoreProfile />} />
         </Routes>
       </main>
-
-      <footer className="text-center py-6 text-sm text-gray-400">
-        &copy; 2025 AlbaTrust. 알바 신뢰 플랫폼
-      </footer>
     </div>
   )
 }

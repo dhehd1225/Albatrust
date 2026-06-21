@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CalendarCheck, FileText, ShieldCheck } from 'lucide-react'
+import { CalendarCheck, Store, FileText, ShieldCheck } from 'lucide-react'
 
 export default function Home({ isAuthenticated }) {
   const features = [
@@ -23,6 +23,13 @@ export default function Home({ isAuthenticated }) {
       desc: '면접 일정을 확정하고 출석 기록으로 연결하세요.',
       link: isAuthenticated ? '/interview' : '/login',
       color: 'bg-blue/10 text-blue',
+    },
+    {
+      icon: Store,
+      title: '내 가게',
+      desc: '가게를 만들고 알바생을 초대해 출퇴근 · 임금 · 주휴수당을 관리하세요.',
+      link: isAuthenticated ? '/attendance' : '/login',
+      color: 'bg-purple-500/10 text-purple-600',
     },
   ]
 

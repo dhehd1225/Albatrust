@@ -6,10 +6,14 @@ export default function AuthPage({ mode, onAuth }) {
   const navigate = useNavigate()
   const location = useLocation()
   const isSignup = mode === 'signup'
-  const testAccount = {
-    name: '테스트 사용자',
-    email: 'test@albatrust.local',
-    password: 'test1234',
+  const bossTestAccount = {
+    name: '사장 테스트',
+    email: 'boss@albatrust.local',
+    role: 'boss',
+  }
+  const albaTestAccount = {
+    name: '알바 테스트',
+    email: 'alba@albatrust.local',
     role: 'alba',
   }
   const [form, setForm] = useState({
@@ -37,19 +41,9 @@ export default function AuthPage({ mode, onAuth }) {
     navigate(location.state?.from || '/career', { replace: true })
   }
 
-  const handleTestLogin = (event) => {
-    event.preventDefault()
-    onAuth(testAccount)
+  const handleTestLogin = (account) => {
+    onAuth(account)
     navigate(location.state?.from || '/career', { replace: true })
-  }
-
-  const fillTestAccount = () => {
-    setForm({
-      name: testAccount.name,
-      email: testAccount.email,
-      password: testAccount.password,
-      role: testAccount.role,
-    })
   }
 
   return (
@@ -151,21 +145,25 @@ export default function AuthPage({ mode, onAuth }) {
           {isSignup ? '회원가입 후 내 경력 보기' : '로그인하고 내 경력 보기'}
         </button>
 
-        <button
-          type="button"
-          onClick={handleTestLogin}
-          className="w-full py-3 bg-navy text-white font-medium rounded-xl hover:bg-navy-light transition-colors"
-        >
-          테스트 계정으로 바로 로그인
-        </button>
-
-        <button
-          type="button"
-          onClick={fillTestAccount}
-          className="w-full py-2 border border-gray-200 text-gray-600 rounded-xl text-sm hover:border-blue hover:text-blue transition-colors"
-        >
-          테스트 계정 정보 자동입력
-        </button>
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-400 text-center mb-3">테스트 계정으로 바로 둘러보기</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleTestLogin(bossTestAccount)}
+              className="py-3 bg-navy text-white text-sm font-semibold rounded-xl hover:bg-navy-light transition-colors"
+            >
+              사장님으로 로그인
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTestLogin(albaTestAccount)}
+              className="py-3 bg-blue text-white text-sm font-semibold rounded-xl hover:bg-blue-light transition-colors"
+            >
+              알바생으로 로그인
+            </button>
+          </div>
+        </div>
       </form>
 
       <div className="text-center mt-5 text-sm text-gray-500">

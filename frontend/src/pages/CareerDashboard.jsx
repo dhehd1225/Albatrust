@@ -10,31 +10,12 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 
-const careers = [
-  {
-    id: 'career-1',
-    store: 'CU 역삼점',
-    role: '편의점 스태프',
-    period: '2024.10 ~ 2025.03',
-    status: '인증 완료',
-    proof: '근무 6개월 · 정산 이슈 없음',
-    strength: '직영점 지원 시 매장 운영 경험으로 활용 가능',
-  },
-  {
-    id: 'career-2',
-    store: '한빛세무회계',
-    role: '사무보조',
-    period: '2025.04 ~ 현재',
-    status: '인증 대기',
-    proof: '계약서 확인 완료 · 담당자 승인 대기',
-    strength: '경리직 지원 시 문서 정리 경험으로 활용 가능',
-  },
-]
+const careers = []
 
 const stats = [
-  { label: '인증 경력', value: '1건', icon: ShieldCheck },
-  { label: '대기 중', value: '1건', icon: Clock },
-  { label: '계약서', value: '2건', icon: FileText },
+  { label: '인증 경력', value: '0건', icon: ShieldCheck },
+  { label: '대기 중', value: '0건', icon: Clock },
+  { label: '계약서', value: '0건', icon: FileText },
 ]
 
 export default function CareerDashboard() {
@@ -73,6 +54,12 @@ export default function CareerDashboard() {
           </Link>
         </div>
 
+        {careers.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-200 bg-bg p-10 text-center">
+            <BriefcaseBusiness className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">아직 등록된 경력이 없습니다. 경력 인증을 요청해보세요.</p>
+          </div>
+        ) : (
         <div className="space-y-4">
           {careers.map((career) => {
             const verified = career.status === '인증 완료'
@@ -118,6 +105,7 @@ export default function CareerDashboard() {
             )
           })}
         </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">

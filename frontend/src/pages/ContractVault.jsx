@@ -1,28 +1,11 @@
 import { useState } from 'react'
 import { CheckCircle2, FileCheck2, FileText, Upload } from 'lucide-react'
 
-const initialContracts = [
-  {
-    id: 'contract-1',
-    title: 'CU 역삼점 근로계약서',
-    type: '전자계약서',
-    period: '2024.10.01 ~ 2025.03.31',
-    linkedCareer: '편의점 스태프',
-    status: '경력 연결됨',
-  },
-  {
-    id: 'contract-2',
-    title: '한빛세무회계 근로계약서',
-    type: '사본',
-    period: '2025.04.01 ~ 현재',
-    linkedCareer: '사무보조',
-    status: '확인 필요',
-  },
-]
+const initialContracts = []
 
 export default function ContractVault() {
   const [contracts, setContracts] = useState(initialContracts)
-  const [selectedId, setSelectedId] = useState(initialContracts[0].id)
+  const [selectedId, setSelectedId] = useState(null)
   const selected = contracts.find((contract) => contract.id === selectedId)
 
   const handleUpload = (event) => {
@@ -62,6 +45,12 @@ export default function ContractVault() {
       <div className="grid lg:grid-cols-[1fr_1.1fr] gap-5">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-navy mb-4">보관 중인 계약서</h2>
+          {contracts.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-bg p-10 text-center">
+              <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-400">보관 중인 계약서가 없습니다. 위에서 계약서를 업로드하세요.</p>
+            </div>
+          ) : (
           <div className="space-y-3">
             {contracts.map((contract) => {
               const active = selectedId === contract.id
@@ -103,8 +92,10 @@ export default function ContractVault() {
               )
             })}
           </div>
+          )}
         </div>
 
+        {selected ? (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="aspect-[4/3] rounded-2xl bg-bg border border-gray-100 flex items-center justify-center mb-5">
             <div className="text-center">
@@ -138,6 +129,14 @@ export default function ContractVault() {
             </button>
           </div>
         </div>
+        ) : (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-center min-h-[280px]">
+          <div className="text-center">
+            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">계약서를 선택하면 상세 정보가 표시됩니다.</p>
+          </div>
+        </div>
+        )}
       </div>
     </div>
   )

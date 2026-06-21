@@ -20,95 +20,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "data", "albatrust.db")
+# DB 경로. 배포 환경에서는 영속 디스크를 가리키도록 DATABASE_PATH 환경변수로 덮어쓸 수 있습니다.
+# (예: Render 디스크 마운트 경로 /var/data/albatrust.db)
+DB_PATH = os.environ.get(
+    "DATABASE_PATH", os.path.join(os.path.dirname(__file__), "data", "albatrust.db")
+)
 
 
-DEFAULT_ALBA_PROFILES = {
-    "1": {
-        "id": "1",
-        "name": "김민준",
-        "trustScore": 92,
-        "badges": [
-            {"id": "no_noshow", "name": "노쇼 제로", "icon": "shield-check", "description": "노쇼 없이 모든 면접에 출석"},
-            {"id": "no_late", "name": "지각 없음", "icon": "clock", "description": "한 번도 지각하지 않은 성실한 알바생"},
-            {"id": "boss_recommend", "name": "사장님 추천", "icon": "thumbs-up", "description": "사장님이 직접 추천한 알바생"},
-            {"id": "long_term", "name": "장기 근속", "icon": "award", "description": "6개월 이상 꾸준히 근무"},
-        ],
-        "interviewAttendance": 12,
-        "totalInterviews": 12,
-        "workHistory": [
-            {"store": "스타벅스 강남점", "period": "2024.03 ~ 2024.09", "rating": 5},
-            {"store": "CU 역삼점", "period": "2024.10 ~ 현재", "rating": 5},
-        ],
-    },
-    "2": {
-        "id": "2",
-        "name": "이서연",
-        "trustScore": 78,
-        "badges": [
-            {"id": "no_noshow", "name": "노쇼 제로", "icon": "shield-check", "description": "노쇼 없이 모든 면접에 출석"},
-            {"id": "boss_recommend", "name": "사장님 추천", "icon": "thumbs-up", "description": "사장님이 직접 추천한 알바생"},
-        ],
-        "interviewAttendance": 8,
-        "totalInterviews": 9,
-        "workHistory": [
-            {"store": "이디야커피 서초점", "period": "2024.06 ~ 2024.12", "rating": 4},
-        ],
-    },
-    "3": {
-        "id": "3",
-        "name": "박지호",
-        "trustScore": 45,
-        "badges": [],
-        "interviewAttendance": 3,
-        "totalInterviews": 7,
-        "workHistory": [
-            {"store": "GS25 신촌점", "period": "2024.01 ~ 2024.03", "rating": 3},
-        ],
-    },
-}
+# 데모용 시드 데이터는 사용하지 않습니다. (모든 계정은 빈 상태로 시작)
+DEFAULT_ALBA_PROFILES = {}
 
 
-DEFAULT_STORE_PROFILES = {
-    "1": {
-        "id": "1",
-        "name": "스타벅스 강남점",
-        "trustScore": 95,
-        "category": "카페",
-        "address": "서울시 강남구 테헤란로 123",
-        "wageComplaint": False,
-        "reviews": [
-            {"author": "김민준", "rating": 5, "comment": "시급도 정확하고, 매니저님이 정말 친절해요!", "date": "2024.09.15"},
-            {"author": "이서연", "rating": 5, "comment": "체계적인 교육과 좋은 근무 환경이에요.", "date": "2024.08.20"},
-            {"author": "최유진", "rating": 4, "comment": "바쁜 시간대가 힘들지만 전반적으로 좋아요.", "date": "2024.07.10"},
-        ],
-    },
-    "2": {
-        "id": "2",
-        "name": "CU 역삼점",
-        "trustScore": 72,
-        "category": "편의점",
-        "address": "서울시 강남구 역삼로 45",
-        "wageComplaint": False,
-        "reviews": [
-            {"author": "박지호", "rating": 3, "comment": "급여는 정시에 나오지만, 야간 수당이 좀 아쉬워요.", "date": "2024.11.05"},
-            {"author": "정하은", "rating": 4, "comment": "혼자 일하는 시간이 많지만 편해요.", "date": "2024.10.15"},
-        ],
-    },
-    "3": {
-        "id": "3",
-        "name": "맘스터치 신림점",
-        "trustScore": 38,
-        "category": "패스트푸드",
-        "address": "서울시 관악구 신림로 67",
-        "wageComplaint": True,
-        "reviews": [
-            {"author": "김도윤", "rating": 2, "comment": "급여가 늦게 들어올 때가 있어요.", "date": "2024.09.20"},
-            {"author": "이하린", "rating": 1, "comment": "야근 수당이 제대로 안 나왔어요. 주의하세요.", "date": "2024.08.15"},
-            {"author": "박서준", "rating": 3, "comment": "사람은 좋은데 시스템이 아쉽습니다.", "date": "2024.07.01"},
-        ],
-    },
-}
+DEFAULT_STORE_PROFILES = {}
 
 
 class InterviewCreate(BaseModel):
@@ -127,6 +50,31 @@ class AttendancePayload(BaseModel):
 
 class InterviewConfirm(BaseModel):
     confirmed: bool = True
+
+
+# 2026년 최저시급 (원/시간)
+DEFAULT_HOURLY_WAGE = 10320
+
+# 주휴수당 지급 기준: 1주 소정근로시간 (분)
+WEEKLY_HOLIDAY_THRESHOLD_MINUTES = 15 * 60
+
+
+class WorkplaceCreate(BaseModel):
+    name: str
+    ownerName: str
+
+
+class MemberCreate(BaseModel):
+    albaName: str
+    hourlyWage: int = DEFAULT_HOURLY_WAGE
+    scheduledStart: str = "09:00"
+    scheduledEnd: str = "18:00"
+    workDays: list[int] = [1, 2, 3, 4, 5]  # 0=일 ... 6=토
+
+
+class JoinWorkplace(BaseModel):
+    inviteCode: str
+    albaName: str
 
 
 def _get_db() -> sqlite3.Connection:
@@ -193,8 +141,56 @@ def _init_db():
               method TEXT NOT NULL,
               FOREIGN KEY(interview_id) REFERENCES interviews(id)
             );
+
+            CREATE TABLE IF NOT EXISTS work_shifts (
+              id TEXT PRIMARY KEY,
+              albaName TEXT NOT NULL,
+              storeName TEXT NOT NULL,
+              hourlyWage INTEGER NOT NULL,
+              clockIn TEXT NOT NULL,
+              clockOut TEXT,
+              createdAt TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS workplaces (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              ownerName TEXT NOT NULL,
+              hourlyWage INTEGER NOT NULL,
+              inviteCode TEXT NOT NULL UNIQUE,
+              createdAt TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS workplace_members (
+              id TEXT PRIMARY KEY,
+              workplace_id TEXT NOT NULL,
+              albaName TEXT NOT NULL,
+              hourlyWage INTEGER,
+              joinedAt TEXT NOT NULL,
+              FOREIGN KEY(workplace_id) REFERENCES workplaces(id)
+            );
             """
         )
+
+        # work_shifts에 가게/멤버 연결 컬럼 추가 (기존 DB 마이그레이션)
+        existing_cols = {
+            row["name"] for row in conn.execute("PRAGMA table_info(work_shifts)").fetchall()
+        }
+        if "workplace_id" not in existing_cols:
+            conn.execute("ALTER TABLE work_shifts ADD COLUMN workplace_id TEXT")
+        if "member_id" not in existing_cols:
+            conn.execute("ALTER TABLE work_shifts ADD COLUMN member_id TEXT")
+
+        # workplace_members에 근무시간대(스케줄) 컬럼 추가
+        member_cols = {
+            row["name"] for row in conn.execute("PRAGMA table_info(workplace_members)").fetchall()
+        }
+        if "scheduledStart" not in member_cols:
+            conn.execute("ALTER TABLE workplace_members ADD COLUMN scheduledStart TEXT")
+        if "scheduledEnd" not in member_cols:
+            conn.execute("ALTER TABLE workplace_members ADD COLUMN scheduledEnd TEXT")
+        if "workDays" not in member_cols:
+            conn.execute("ALTER TABLE workplace_members ADD COLUMN workDays TEXT")
 
         _seed_default_data(conn)
 
@@ -430,6 +426,33 @@ def _set_attendance(interview_id: str, payload: AttendancePayload) -> dict:
         return _to_interview_payload(updated, conn=conn)
 
 
+def _serialize_shift(row: sqlite3.Row) -> dict:
+    clock_in_dt = datetime.fromisoformat(row["clockIn"])
+    if row["clockOut"]:
+        end_dt = datetime.fromisoformat(row["clockOut"])
+        ongoing = False
+    else:
+        end_dt = datetime.now()
+        ongoing = True
+
+    worked_minutes = max(0, int((end_dt - clock_in_dt).total_seconds() // 60))
+    wage = round(worked_minutes / 60 * row["hourlyWage"])
+
+    return {
+        "id": row["id"],
+        "albaName": row["albaName"],
+        "storeName": row["storeName"],
+        "hourlyWage": row["hourlyWage"],
+        "clockIn": row["clockIn"],
+        "clockOut": row["clockOut"],
+        "ongoing": ongoing,
+        "workedMinutes": worked_minutes,
+        "wage": wage,
+        "memberId": row["member_id"] if "member_id" in row.keys() else None,
+        "createdAt": row["createdAt"],
+    }
+
+
 def _scan_exists(token: str) -> Optional[sqlite3.Row]:
     with _get_db() as conn:
         return conn.execute(
@@ -576,10 +599,380 @@ def get_store_profile(store_id: str):
         return _serialize_store_profile(profile)
 
 
+def _hhmm_to_minutes(value: Optional[str], default: int) -> int:
+    if not value:
+        return default
+    try:
+        hour, minute = value.split(":")
+        return int(hour) * 60 + int(minute)
+    except (ValueError, AttributeError):
+        return default
+
+
+def _member_workdays(member: sqlite3.Row) -> list[int]:
+    raw = member["workDays"] if "workDays" in member.keys() else None
+    if not raw:
+        return [1, 2, 3, 4, 5]
+    try:
+        days = json.loads(raw)
+        return [int(d) for d in days]
+    except (ValueError, TypeError):
+        return [1, 2, 3, 4, 5]
+
+
+def _member_schedule(member: sqlite3.Row) -> dict:
+    """알바생의 소정근로시간(예정 근무)과 주휴수당을 계산한다."""
+    start = member["scheduledStart"] or "09:00"
+    end = member["scheduledEnd"] or "18:00"
+    days = _member_workdays(member)
+    daily_minutes = max(0, _hhmm_to_minutes(end, 1080) - _hhmm_to_minutes(start, 540))
+    weekly_minutes = daily_minutes * len(days)
+    return {
+        "scheduledStart": start,
+        "scheduledEnd": end,
+        "workDays": days,
+        "scheduledDailyMinutes": daily_minutes,
+        "scheduledWeeklyMinutes": weekly_minutes,
+        "weeklyHours": round(weekly_minutes / 60, 1),
+    }
+
+
+def _generate_invite_code(conn: sqlite3.Connection) -> str:
+    while True:
+        code = uuid.uuid4().hex[:6].upper()
+        exists = conn.execute(
+            "SELECT 1 FROM workplaces WHERE inviteCode = ?", (code,)
+        ).fetchone()
+        if not exists:
+            return code
+
+
+def _member_effective_wage(member: sqlite3.Row, workplace: sqlite3.Row) -> int:
+    return member["hourlyWage"] if member["hourlyWage"] is not None else workplace["hourlyWage"]
+
+
+def _member_stats(member: sqlite3.Row, workplace: sqlite3.Row, conn: sqlite3.Connection) -> dict:
+    shift_rows = conn.execute(
+        "SELECT * FROM work_shifts WHERE member_id = ? ORDER BY clockIn DESC",
+        (member["id"],),
+    ).fetchall()
+    shifts = [_serialize_shift(row) for row in shift_rows]
+    wage = _member_effective_wage(member, workplace)
+    schedule = _member_schedule(member)
+
+    # 주휴수당: 1주 소정근로시간 15시간 이상이면 (주 소정근로시간 ÷ 40 × 8) × 시급
+    weekly_minutes = schedule["scheduledWeeklyMinutes"]
+    eligible = weekly_minutes >= WEEKLY_HOLIDAY_THRESHOLD_MINUTES
+    capped = min(weekly_minutes, 40 * 60)
+    holiday_pay = round(capped / (40 * 60) * 8 * wage) if eligible else 0
+
+    return {
+        "id": member["id"],
+        "albaName": member["albaName"],
+        "hourlyWage": wage,
+        "joinedAt": member["joinedAt"],
+        **schedule,
+        "holidayEligible": eligible,
+        "holidayPay": holiday_pay,
+        "working": any(s["ongoing"] for s in shifts),
+        "shiftCount": len(shifts),
+        "totalMinutes": sum(s["workedMinutes"] for s in shifts),
+        "totalWage": sum(s["wage"] for s in shifts),
+    }
+
+
+def _serialize_workplace(row: sqlite3.Row, conn: sqlite3.Connection) -> dict:
+    member_count = conn.execute(
+        "SELECT COUNT(*) AS cnt FROM workplace_members WHERE workplace_id = ?",
+        (row["id"],),
+    ).fetchone()["cnt"]
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "ownerName": row["ownerName"],
+        "hourlyWage": row["hourlyWage"],
+        "inviteCode": row["inviteCode"],
+        "createdAt": row["createdAt"],
+        "memberCount": member_count,
+    }
+
+
+def _serialize_workplace_detail(row: sqlite3.Row, conn: sqlite3.Connection) -> dict:
+    detail = _serialize_workplace(row, conn)
+    member_rows = conn.execute(
+        "SELECT * FROM workplace_members WHERE workplace_id = ? ORDER BY joinedAt ASC",
+        (row["id"],),
+    ).fetchall()
+    shift_rows = conn.execute(
+        "SELECT * FROM work_shifts WHERE workplace_id = ? ORDER BY clockIn DESC",
+        (row["id"],),
+    ).fetchall()
+
+    schedule_by_member = {member["id"]: _member_schedule(member) for member in member_rows}
+
+    shifts = []
+    for shift_row in shift_rows:
+        shift = _serialize_shift(shift_row)
+        schedule = schedule_by_member.get(shift["memberId"])
+        if schedule:
+            start_min = _hhmm_to_minutes(schedule["scheduledStart"], 540)
+            end_min = _hhmm_to_minutes(schedule["scheduledEnd"], 1080)
+            clock_in_dt = datetime.fromisoformat(shift["clockIn"])
+            shift["lateMinutes"] = max(0, (clock_in_dt.hour * 60 + clock_in_dt.minute) - start_min)
+            if shift["clockOut"]:
+                clock_out_dt = datetime.fromisoformat(shift["clockOut"])
+                shift["earlyLeaveMinutes"] = max(
+                    0, end_min - (clock_out_dt.hour * 60 + clock_out_dt.minute)
+                )
+            else:
+                shift["earlyLeaveMinutes"] = 0
+        else:
+            shift["lateMinutes"] = 0
+            shift["earlyLeaveMinutes"] = 0
+        shifts.append(shift)
+
+    detail["members"] = [_member_stats(member, row, conn) for member in member_rows]
+    detail["shifts"] = shifts
+    return detail
+
+
+def _get_workplace_or_404(conn: sqlite3.Connection, workplace_id: str) -> sqlite3.Row:
+    workplace = conn.execute(
+        "SELECT * FROM workplaces WHERE id = ?", (workplace_id,)
+    ).fetchone()
+    if not workplace:
+        raise HTTPException(status_code=404, detail="가게를 찾을 수 없습니다.")
+    return workplace
+
+
+def _get_member_or_404(conn: sqlite3.Connection, workplace_id: str, member_id: str) -> sqlite3.Row:
+    member = conn.execute(
+        "SELECT * FROM workplace_members WHERE id = ? AND workplace_id = ?",
+        (member_id, workplace_id),
+    ).fetchone()
+    if not member:
+        raise HTTPException(status_code=404, detail="알바생을 찾을 수 없습니다.")
+    return member
+
+
+@app.post("/api/workplaces")
+def create_workplace(data: WorkplaceCreate):
+    name = data.name.strip()
+    owner = data.ownerName.strip()
+    if not name or not owner:
+        raise HTTPException(status_code=400, detail="가게 이름과 사장님 이름을 입력해주세요.")
+
+    workplace_id = str(uuid.uuid4())[:8]
+    now = datetime.now().isoformat()
+    with _get_db() as conn:
+        invite_code = _generate_invite_code(conn)
+        # 시급은 알바생별로 입력받으므로 가게에는 최저시급을 기본값으로만 보관
+        conn.execute(
+            """
+            INSERT INTO workplaces (id, name, ownerName, hourlyWage, inviteCode, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (workplace_id, name, owner, DEFAULT_HOURLY_WAGE, invite_code, now),
+        )
+        workplace = conn.execute(
+            "SELECT * FROM workplaces WHERE id = ?", (workplace_id,)
+        ).fetchone()
+        return _serialize_workplace_detail(workplace, conn)
+
+
+@app.get("/api/workplaces")
+def list_workplaces(owner: Optional[str] = None):
+    with _get_db() as conn:
+        if owner:
+            rows = conn.execute(
+                "SELECT * FROM workplaces WHERE ownerName = ? ORDER BY createdAt DESC",
+                (owner,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM workplaces ORDER BY createdAt DESC"
+            ).fetchall()
+        return [_serialize_workplace(row, conn) for row in rows]
+
+
+@app.get("/api/workplaces/{workplace_id}")
+def get_workplace(workplace_id: str):
+    with _get_db() as conn:
+        workplace = _get_workplace_or_404(conn, workplace_id)
+        return _serialize_workplace_detail(workplace, conn)
+
+
+@app.delete("/api/workplaces/{workplace_id}")
+def delete_workplace(workplace_id: str):
+    with _get_db() as conn:
+        _get_workplace_or_404(conn, workplace_id)
+        conn.execute("DELETE FROM work_shifts WHERE workplace_id = ?", (workplace_id,))
+        conn.execute("DELETE FROM workplace_members WHERE workplace_id = ?", (workplace_id,))
+        conn.execute("DELETE FROM workplaces WHERE id = ?", (workplace_id,))
+        return {"deleted": True}
+
+
+@app.post("/api/workplaces/{workplace_id}/members")
+def add_member(workplace_id: str, data: MemberCreate):
+    alba_name = data.albaName.strip()
+    if not alba_name:
+        raise HTTPException(status_code=400, detail="알바생 이름을 입력해주세요.")
+    if data.hourlyWage <= 0:
+        raise HTTPException(status_code=400, detail="시급을 올바르게 입력해주세요.")
+    if not data.workDays:
+        raise HTTPException(status_code=400, detail="근무 요일을 1개 이상 선택해주세요.")
+    if _hhmm_to_minutes(data.scheduledEnd, 1080) <= _hhmm_to_minutes(data.scheduledStart, 540):
+        raise HTTPException(status_code=400, detail="퇴근 시간은 출근 시간보다 늦어야 합니다.")
+
+    now = datetime.now().isoformat()
+    with _get_db() as conn:
+        _get_workplace_or_404(conn, workplace_id)
+        existing = conn.execute(
+            "SELECT 1 FROM workplace_members WHERE workplace_id = ? AND albaName = ?",
+            (workplace_id, alba_name),
+        ).fetchone()
+        if existing:
+            raise HTTPException(status_code=400, detail="이미 초대된 알바생입니다.")
+
+        member_id = str(uuid.uuid4())[:8]
+        conn.execute(
+            """
+            INSERT INTO workplace_members
+                (id, workplace_id, albaName, hourlyWage, scheduledStart, scheduledEnd, workDays, joinedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                member_id,
+                workplace_id,
+                alba_name,
+                data.hourlyWage,
+                data.scheduledStart,
+                data.scheduledEnd,
+                json.dumps(sorted(set(data.workDays))),
+                now,
+            ),
+        )
+        workplace = conn.execute(
+            "SELECT * FROM workplaces WHERE id = ?", (workplace_id,)
+        ).fetchone()
+        return _serialize_workplace_detail(workplace, conn)
+
+
+@app.delete("/api/workplaces/{workplace_id}/members/{member_id}")
+def remove_member(workplace_id: str, member_id: str):
+    with _get_db() as conn:
+        workplace = _get_workplace_or_404(conn, workplace_id)
+        _get_member_or_404(conn, workplace_id, member_id)
+        conn.execute("DELETE FROM work_shifts WHERE member_id = ?", (member_id,))
+        conn.execute("DELETE FROM workplace_members WHERE id = ?", (member_id,))
+        return _serialize_workplace_detail(workplace, conn)
+
+
+@app.post("/api/workplaces/{workplace_id}/members/{member_id}/clock-in")
+def member_clock_in(workplace_id: str, member_id: str):
+    now = datetime.now().isoformat()
+    with _get_db() as conn:
+        workplace = _get_workplace_or_404(conn, workplace_id)
+        member = _get_member_or_404(conn, workplace_id, member_id)
+
+        open_shift = conn.execute(
+            "SELECT id FROM work_shifts WHERE member_id = ? AND clockOut IS NULL",
+            (member_id,),
+        ).fetchone()
+        if open_shift:
+            raise HTTPException(status_code=400, detail="이미 출근 중입니다. 먼저 퇴근을 찍어주세요.")
+
+        shift_id = str(uuid.uuid4())[:8]
+        conn.execute(
+            """
+            INSERT INTO work_shifts (
+                id, albaName, storeName, hourlyWage, clockIn, clockOut, createdAt,
+                workplace_id, member_id
+            )
+            VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)
+            """,
+            (
+                shift_id,
+                member["albaName"],
+                workplace["name"],
+                _member_effective_wage(member, workplace),
+                now,
+                now,
+                workplace_id,
+                member_id,
+            ),
+        )
+        return _serialize_workplace_detail(workplace, conn)
+
+
+@app.post("/api/workplaces/{workplace_id}/members/{member_id}/clock-out")
+def member_clock_out(workplace_id: str, member_id: str):
+    now = datetime.now().isoformat()
+    with _get_db() as conn:
+        workplace = _get_workplace_or_404(conn, workplace_id)
+        _get_member_or_404(conn, workplace_id, member_id)
+
+        open_shift = conn.execute(
+            "SELECT * FROM work_shifts WHERE member_id = ? AND clockOut IS NULL ORDER BY clockIn DESC LIMIT 1",
+            (member_id,),
+        ).fetchone()
+        if not open_shift:
+            raise HTTPException(status_code=400, detail="출근 기록이 없습니다. 먼저 출근을 찍어주세요.")
+
+        conn.execute(
+            "UPDATE work_shifts SET clockOut = ? WHERE id = ?",
+            (now, open_shift["id"]),
+        )
+        return _serialize_workplace_detail(workplace, conn)
+
+
+@app.post("/api/workplaces/join")
+def join_workplace(data: JoinWorkplace):
+    invite_code = data.inviteCode.strip().upper()
+    alba_name = data.albaName.strip()
+    if not invite_code or not alba_name:
+        raise HTTPException(status_code=400, detail="초대코드와 이름을 입력해주세요.")
+
+    now = datetime.now().isoformat()
+    with _get_db() as conn:
+        workplace = conn.execute(
+            "SELECT * FROM workplaces WHERE inviteCode = ?", (invite_code,)
+        ).fetchone()
+        if not workplace:
+            raise HTTPException(status_code=404, detail="유효하지 않은 초대코드입니다.")
+
+        existing = conn.execute(
+            "SELECT 1 FROM workplace_members WHERE workplace_id = ? AND albaName = ?",
+            (workplace["id"], alba_name),
+        ).fetchone()
+        if not existing:
+            member_id = str(uuid.uuid4())[:8]
+            conn.execute(
+                """
+                INSERT INTO workplace_members
+                    (id, workplace_id, albaName, hourlyWage, scheduledStart, scheduledEnd, workDays, joinedAt)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    member_id,
+                    workplace["id"],
+                    alba_name,
+                    DEFAULT_HOURLY_WAGE,
+                    "09:00",
+                    "18:00",
+                    json.dumps([1, 2, 3, 4, 5]),
+                    now,
+                ),
+            )
+
+        return _serialize_workplace_detail(workplace, conn)
+
+
 _init_db()
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -1,45 +1,47 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { MapPin, AlertTriangle, CheckCircle } from 'lucide-react'
 import TrustScore from '../components/TrustScore'
 import StarRating from '../components/StarRating'
 
-const DUMMY_STORES = {
-  "1": {
-    id: "1", name: "스타벅스 강남점", trustScore: 95, category: "카페",
-    address: "서울시 강남구 테헤란로 123", wageComplaint: false,
-    reviews: [
-      { author: "김민준", rating: 5, comment: "시급도 정확하고, 매니저님이 정말 친절해요!", date: "2024.09.15" },
-      { author: "이서연", rating: 5, comment: "체계적인 교육과 좋은 근무 환경이에요.", date: "2024.08.20" },
-      { author: "최유진", rating: 4, comment: "바쁜 시간대가 힘들지만 전반적으로 좋아요.", date: "2024.07.10" },
-    ],
-  },
-  "2": {
-    id: "2", name: "CU 역삼점", trustScore: 72, category: "편의점",
-    address: "서울시 강남구 역삼로 45", wageComplaint: false,
-    reviews: [
-      { author: "박지호", rating: 3, comment: "급여는 정시에 나오지만, 야간 수당이 좀 아쉬워요.", date: "2024.11.05" },
-      { author: "정하은", rating: 4, comment: "혼자 일하는 시간이 많지만 편해요.", date: "2024.10.15" },
-    ],
-  },
-  "3": {
-    id: "3", name: "맘스터치 신림점", trustScore: 38, category: "패스트푸드",
-    address: "서울시 관악구 신림로 67", wageComplaint: true,
-    reviews: [
-      { author: "김도윤", rating: 2, comment: "급여가 늦게 들어올 때가 있어요.", date: "2024.09.20" },
-      { author: "이하린", rating: 1, comment: "야근 수당이 제대로 안 나왔어요. 주의하세요.", date: "2024.08.15" },
-      { author: "박서준", rating: 3, comment: "사람은 좋은데 시스템이 아쉽습니다.", date: "2024.07.01" },
-    ],
-  },
-}
+import { API_BASE } from '../lib/api'
 
 export default function StoreProfile() {
   const { id } = useParams()
-  const store = DUMMY_STORES[id] || null
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [store, setStore] = useState(null)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`${API_BASE}/api/stores/${id}`)
+        const payload = await res.json()
+        if (!res.ok) {
+          throw new Error(payload?.detail || '매장 프로필을 가져오지 못했습니다.')
+        }
+        setStore(payload)
+        setError('')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '매장 프로필을 가져오지 못했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [id])
+
+  if (loading) {
+    return <p className="text-center py-12 text-gray-400">프로필을 불러오는 중입니다...</p>
+  }
 
   if (!store) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-400">매장 프로필을 찾을 수 없습니다.</p>
+        {error ? <p className="text-sm text-red-400 mt-2">{error}</p> : null}
       </div>
     )
   }
@@ -110,40 +112,27 @@ export default function StoreProfile() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          {store.reviews.map((review, i) => (
-            <div key={i} className="p-4 bg-bg rounded-xl">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-navy/10 rounded-full flex items-center justify-center text-xs font-bold text-navy">
-                    {review.author[0]}
+        {store.reviews.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-6">아직 등록된 후기가 없습니다.</p>
+        ) : (
+          <div className="space-y-3">
+            {store.reviews.map((review, i) => (
+              <div key={i} className="p-4 bg-bg rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-navy/10 rounded-full flex items-center justify-center text-xs font-bold text-navy">
+                      {review.author[0]}
+                    </div>
+                    <span className="font-medium text-navy text-sm">{review.author}</span>
                   </div>
-                  <span className="font-medium text-navy text-sm">{review.author}</span>
+                  <span className="text-xs text-gray-400">{review.date}</span>
                 </div>
-                <span className="text-xs text-gray-400">{review.date}</span>
+                <StarRating rating={review.rating} size={12} />
+                <p className="text-sm text-gray-600 mt-2">{review.comment}</p>
               </div>
-              <StarRating rating={review.rating} size={12} />
-              <p className="text-sm text-gray-600 mt-2">{review.comment}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex gap-3 justify-center">
-        {['1', '2', '3'].map((sid) => (
-          <Link
-            key={sid}
-            to={`/store/${sid}`}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              id === sid
-                ? 'bg-blue text-white'
-                : 'bg-white text-navy border border-gray-200 hover:border-blue'
-            }`}
-          >
-            매장 {sid}
-          </Link>
-        ))}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

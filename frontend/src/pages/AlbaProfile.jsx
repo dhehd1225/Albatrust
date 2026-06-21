@@ -1,11 +1,11 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { CalendarCheck, Briefcase } from 'lucide-react'
 import TrustScore from '../components/TrustScore'
 import Badge from '../components/Badge'
 import StarRating from '../components/StarRating'
 import { useEffect, useState } from 'react'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../lib/api'
 
 export default function AlbaProfile() {
   const { id } = useParams()
@@ -110,23 +110,6 @@ export default function AlbaProfile() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex gap-3 justify-center">
-        {['1', '2', '3'].map((pid) => (
-          <Link
-            key={pid}
-            to={`/alba/${pid}`}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              id === pid
-                ? 'bg-blue text-white'
-                : 'bg-white text-navy border border-gray-200 hover:border-blue'
-            }`}
-          >
-            프로필 {pid}
-          </Link>
-        ))}
       </div>
     </div>
   )

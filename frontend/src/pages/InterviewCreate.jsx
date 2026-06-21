@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarCheck, Copy, Check, ExternalLink, QrCode, Smartphone } from 'lucide-react'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../lib/api'
 
 export default function InterviewCreate() {
   const [form, setForm] = useState({

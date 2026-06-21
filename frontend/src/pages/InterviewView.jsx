@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { MapPin, Calendar, Clock, FileText, CheckCircle2, UserCheck, Store, QrCode, Smartphone } from 'lucide-react'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../lib/api'
 
 export default function InterviewView() {
   const { id } = useParams()
