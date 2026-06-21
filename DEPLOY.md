@@ -1,11 +1,12 @@
 # 배포 가이드 — Vercel 하나로 (프론트 + 백엔드 + DB)
 
-이 프로젝트는 Vercel **한 곳**에 배포됩니다.
-- 프론트엔드(Vite/React) → Vercel 정적 호스팅
-- 백엔드(FastAPI) → Vercel 서버리스 함수 (`api/index.py`)
+이 프로젝트는 Vercel **한 곳**에 배포됩니다. Vercel의 **Services** 기능으로
+프론트와 백엔드를 한 프로젝트(한 도메인)에 같이 올립니다.
+- 프론트엔드(Vite/React) → `web` 서비스, 경로 `/`
+- 백엔드(FastAPI) → `api` 서비스, 경로 `/api` (`api/index.py`)
 - DB → Vercel Postgres(Neon) — 무료 티어
 
-별도 서버(Render 등) 불필요합니다.
+설정은 `vercel.json` 의 `experimentalServices` 에 들어있습니다. 별도 서버(Render 등) 불필요.
 
 ---
 
@@ -13,10 +14,13 @@
 
 1. https://vercel.com → 로그인 → **Add New... → Project**
 2. **Albatrust** 저장소 **Import**
-3. 설정은 **기본값 그대로** 두세요 (Root Directory = 저장소 루트 `./`).
-   - `vercel.json` 이 프론트 빌드와 `/api` 라우팅을 자동 처리합니다.
-   - Root Directory 를 `frontend` 로 바꾸지 마세요. (루트여야 `/api`가 함께 배포됩니다.)
+3. **Framework Preset** 을 **Services** 로 설정합니다. (멀티 서비스 배포에 필수)
+   - Root Directory 는 저장소 루트 `./` 그대로 두세요.
+   - 나머지는 `vercel.json` 이 자동 처리합니다.
 4. 일단 **Deploy** 누릅니다. (이 시점엔 DB가 없어 저장 기능은 아직 동작 안 함 — 다음 단계에서 연결)
+
+> 참고: "vercel.json required to deploy projects with multiple services" 메시지는
+> Framework Preset 을 **Services** 로 바꾸고 `vercel.json`(이미 포함됨)을 인식하면 사라집니다.
 
 ## 2. Postgres 데이터베이스 연결 (무료)
 
