@@ -3,6 +3,11 @@
 알바생과 사장님 사이의 신뢰를 만드는 플랫폼. 면접 노쇼·급여 체불 등의 문제를
 **신뢰 점수(Trust Score)** 기반 프로필과 가게 출퇴근·임금 관리로 해결합니다.
 
+## 링크
+
+- 배포 사이트: https://albatrust.vercel.app/
+- GitHub 저장소: https://github.com/dhehd1225/Albatrust
+
 ## 기술 스택
 
 | 구분 | 기술 |
