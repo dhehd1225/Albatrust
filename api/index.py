@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -27,6 +27,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 모든 엔드포인트는 이 라우터에 접두사 없이 정의하고, 아래에서 두 번 등록한다.
+# - 로컬: 프론트가 /api/... 로 호출 → prefix="/api" 등록분이 처리
+# - Vercel: routePrefix(/api)를 떼고 전달(root_path) → 접두사 없는 등록분이 처리
+router = APIRouter()
 
 # ---------------------------------------------------------------------------
 # DB 추상화 (SQLite / PostgreSQL 공용)
@@ -645,12 +650,12 @@ def _get_member_or_404(conn: DB, workplace_id: str, member_id: str):
 # ---------------------------------------------------------------------------
 # 엔드포인트
 # ---------------------------------------------------------------------------
-@app.get("/api/health")
+@router.get("/health")
 def health():
     return {"status": "ok"}
 
 
-@app.post("/api/interviews")
+@router.post("/interviews")
 def create_interview(data: InterviewCreate):
     interview_id = str(uuid.uuid4())[:8]
     qr_token = f"qr-{uuid.uuid4().hex}"
@@ -693,7 +698,7 @@ def create_interview(data: InterviewCreate):
         return _to_interview_payload(interview, conn=conn)
 
 
-@app.get("/api/interviews/{interview_id}")
+@router.get("/interviews/{interview_id}")
 def get_interview(interview_id: str):
     with _get_db() as conn:
         interview = conn.execute("SELECT * FROM interviews WHERE id = ?", (interview_id,)).fetchone()
@@ -702,7 +707,7 @@ def get_interview(interview_id: str):
         return _to_interview_payload(interview, conn=conn)
 
 
-@app.put("/api/interviews/{interview_id}/confirm")
+@router.put("/interviews/{interview_id}/confirm")
 def confirm_interview(interview_id: str):
     now = datetime.now().isoformat()
     with _get_db() as conn:
@@ -718,14 +723,14 @@ def confirm_interview(interview_id: str):
         return _to_interview_payload(updated, conn=conn)
 
 
-@app.post("/api/interviews/{interview_id}/attendance")
+@router.post("/interviews/{interview_id}/attendance")
 def set_attendance(interview_id: str, payload: AttendancePayload):
     if payload.method not in {"qr", "nfc", "manual"}:
         raise HTTPException(status_code=400, detail="지원하지 않는 출석 기록 방식입니다.")
     return _set_attendance(interview_id, payload)
 
 
-@app.post("/api/scans/{token}")
+@router.post("/scans/{token}")
 def scan_attendance(token: str):
     target = _scan_exists(token)
     if not target:
@@ -750,7 +755,7 @@ def scan_attendance(token: str):
     }
 
 
-@app.get("/api/interviews")
+@router.get("/interviews")
 def list_interviews():
     with _get_db() as conn:
         rows = conn.execute(
@@ -759,7 +764,7 @@ def list_interviews():
         return [_to_interview_payload(row, conn=conn) for row in rows]
 
 
-@app.get("/api/alba/{alba_id}")
+@router.get("/alba/{alba_id}")
 def get_alba_profile(alba_id: str):
     with _get_db() as conn:
         profile = conn.execute(
@@ -771,7 +776,7 @@ def get_alba_profile(alba_id: str):
         return _serialize_alba_profile(profile)
 
 
-@app.get("/api/stores/{store_id}")
+@router.get("/stores/{store_id}")
 def get_store_profile(store_id: str):
     with _get_db() as conn:
         profile = conn.execute(
@@ -783,7 +788,7 @@ def get_store_profile(store_id: str):
         return _serialize_store_profile(profile)
 
 
-@app.post("/api/workplaces")
+@router.post("/workplaces")
 def create_workplace(data: WorkplaceCreate):
     name = data.name.strip()
     owner = data.ownerName.strip()
@@ -807,7 +812,7 @@ def create_workplace(data: WorkplaceCreate):
         return _serialize_workplace_detail(workplace, conn)
 
 
-@app.get("/api/workplaces")
+@router.get("/workplaces")
 def list_workplaces(owner: Optional[str] = None):
     with _get_db() as conn:
         if owner:
@@ -822,14 +827,14 @@ def list_workplaces(owner: Optional[str] = None):
         return [_serialize_workplace(row, conn) for row in rows]
 
 
-@app.get("/api/workplaces/{workplace_id}")
+@router.get("/workplaces/{workplace_id}")
 def get_workplace(workplace_id: str):
     with _get_db() as conn:
         workplace = _get_workplace_or_404(conn, workplace_id)
         return _serialize_workplace_detail(workplace, conn)
 
 
-@app.delete("/api/workplaces/{workplace_id}")
+@router.delete("/workplaces/{workplace_id}")
 def delete_workplace(workplace_id: str):
     with _get_db() as conn:
         _get_workplace_or_404(conn, workplace_id)
@@ -839,7 +844,7 @@ def delete_workplace(workplace_id: str):
         return {"deleted": True}
 
 
-@app.post("/api/workplaces/{workplace_id}/members")
+@router.post("/workplaces/{workplace_id}/members")
 def add_member(workplace_id: str, data: MemberCreate):
     alba_name = data.albaName.strip()
     if not alba_name:
@@ -885,7 +890,7 @@ def add_member(workplace_id: str, data: MemberCreate):
         return _serialize_workplace_detail(workplace, conn)
 
 
-@app.delete("/api/workplaces/{workplace_id}/members/{member_id}")
+@router.delete("/workplaces/{workplace_id}/members/{member_id}")
 def remove_member(workplace_id: str, member_id: str):
     with _get_db() as conn:
         workplace = _get_workplace_or_404(conn, workplace_id)
@@ -895,7 +900,7 @@ def remove_member(workplace_id: str, member_id: str):
         return _serialize_workplace_detail(workplace, conn)
 
 
-@app.post("/api/workplaces/{workplace_id}/members/{member_id}/clock-in")
+@router.post("/workplaces/{workplace_id}/members/{member_id}/clock-in")
 def member_clock_in(workplace_id: str, member_id: str):
     now = datetime.now().isoformat()
     with _get_db() as conn:
@@ -932,7 +937,7 @@ def member_clock_in(workplace_id: str, member_id: str):
         return _serialize_workplace_detail(workplace, conn)
 
 
-@app.post("/api/workplaces/{workplace_id}/members/{member_id}/clock-out")
+@router.post("/workplaces/{workplace_id}/members/{member_id}/clock-out")
 def member_clock_out(workplace_id: str, member_id: str):
     now = datetime.now().isoformat()
     with _get_db() as conn:
@@ -953,7 +958,7 @@ def member_clock_out(workplace_id: str, member_id: str):
         return _serialize_workplace_detail(workplace, conn)
 
 
-@app.post("/api/workplaces/join")
+@router.post("/workplaces/join")
 def join_workplace(data: JoinWorkplace):
     invite_code = data.inviteCode.strip().upper()
     alba_name = data.albaName.strip()
@@ -993,6 +998,11 @@ def join_workplace(data: JoinWorkplace):
             )
 
         return _serialize_workplace_detail(workplace, conn)
+
+
+# 라우터를 두 경로 모두에 등록 (로컬 /api/... 과 Vercel root_path 둘 다 호환)
+app.include_router(router)
+app.include_router(router, prefix="/api")
 
 
 if __name__ == "__main__":
