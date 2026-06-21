@@ -1,44 +1,59 @@
-# 배포 가이드 (프론트 = Vercel / 백엔드 = Railway·Render)
+# 배포 가이드 — Vercel 하나로 (프론트 + 백엔드 + DB)
 
-프론트엔드는 Vercel, 백엔드(FastAPI + SQLite)는 디스크를 지원하는 별도 호스팅에 배포합니다.
-Vercel 서버리스는 파일시스템이 일시적이라 SQLite 데이터가 유지되지 않으므로 백엔드는 Vercel에 올리지 않습니다.
+이 프로젝트는 Vercel **한 곳**에 배포됩니다.
+- 프론트엔드(Vite/React) → Vercel 정적 호스팅
+- 백엔드(FastAPI) → Vercel 서버리스 함수 (`api/index.py`)
+- DB → Vercel Postgres(Neon) — 무료 티어
+
+별도 서버(Render 등) 불필요합니다.
 
 ---
 
-## 1. 백엔드 먼저 배포 (Render 예시)
+## 1. Vercel 프로젝트 생성
 
-1. Render(또는 Railway/Fly.io)에서 새 **Web Service** 생성, 이 저장소 연결.
-2. 설정:
-   - **Root Directory**: `backend`
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-     (또는 저장소의 `backend/Procfile` 자동 인식)
-3. **데이터 영속성(중요)**: SQLite 파일이 재배포 시 사라지지 않도록 디스크를 붙입니다.
-   - Render: **Disks** 에서 디스크 추가 → Mount Path 예: `/var/data`
-   - 환경변수 **`DATABASE_PATH`** = `/var/data/albatrust.db` 설정
-   - (디스크를 안 붙이면 재배포/재시작 때 데이터가 초기화됩니다.)
-4. 배포 완료 후 발급되는 URL을 복사 (예: `https://albatrust-api.onrender.com`).
-   - 헬스체크: `https.../api/health` → `{"status":"ok"}`
+1. https://vercel.com → 로그인 → **Add New... → Project**
+2. **Albatrust** 저장소 **Import**
+3. 설정은 **기본값 그대로** 두세요 (Root Directory = 저장소 루트 `./`).
+   - `vercel.json` 이 프론트 빌드와 `/api` 라우팅을 자동 처리합니다.
+   - Root Directory 를 `frontend` 로 바꾸지 마세요. (루트여야 `/api`가 함께 배포됩니다.)
+4. 일단 **Deploy** 누릅니다. (이 시점엔 DB가 없어 저장 기능은 아직 동작 안 함 — 다음 단계에서 연결)
 
-## 2. 프론트엔드 배포 (Vercel)
+## 2. Postgres 데이터베이스 연결 (무료)
 
-1. Vercel에서 **New Project** → 이 저장소 import.
-2. 설정:
-   - **Root Directory**: `frontend`
-   - Framework Preset: **Vite** (자동 인식)
-   - Build Command / Output: 기본값(`vite build` / `dist`)
-3. **환경변수** 추가:
-   - `VITE_API_BASE_URL` = 1단계에서 받은 백엔드 URL (예: `https://albatrust-api.onrender.com`)
-4. Deploy. `frontend/vercel.json` 의 rewrite 설정으로 새로고침 시에도 라우팅이 동작합니다.
+1. 배포된 프로젝트 → 상단 **Storage** 탭 → **Create Database**
+2. **Postgres** (Neon) 선택 → 이름 입력 → **Create**
+3. 생성된 DB를 이 프로젝트에 **Connect** (보통 자동 연결됨).
+   - 그러면 `POSTGRES_URL` 등 환경변수가 프로젝트에 자동 주입됩니다.
+   - 코드가 이 `POSTGRES_URL` 을 자동 인식해 Postgres를 사용합니다. (별도 설정 불필요)
+4. 환경변수가 적용되도록 **Redeploy** (Deployments 탭 → 최근 배포 → ⋯ → Redeploy).
 
 ## 3. 확인
 
-- Vercel 도메인 접속 → 사장/알바 테스트 로그인 → 가게 생성 등이 백엔드에 저장되는지 확인.
-- 저장이 안 되면 브라우저 콘솔에서 CORS/네트워크 오류와 `VITE_API_BASE_URL` 값을 점검하세요.
+- Vercel 도메인 접속 → **사장님으로 로그인** → 가게 생성
+- 새로고침해도 가게가 남아있으면 → 프론트 + 백엔드(서버리스) + Postgres 연동 성공 🎉
+- API 헬스체크: `https://<도메인>/api/health` → `{"status":"ok"}`
+- 저장이 안 되면: 브라우저 F12 → Network 탭에서 `/api/...` 요청이 200인지 확인.
+  500이면 Vercel 대시보드 → Deployments → Functions 로그에서 원인 확인.
 
 ---
 
-### 참고: 로컬 개발
-- `VITE_API_BASE_URL` 미설정 시 자동으로 `http://localhost:8000` 사용.
-- 백엔드: `cd backend && ./venv/bin/python -m uvicorn main:app --port 8000`
-- 프론트: `cd frontend && npm run dev`
+## 로컬 개발
+
+로컬에서는 환경변수가 없으므로 자동으로 **SQLite 파일**(`backend/data/albatrust.db`)을 사용합니다.
+
+```bash
+# 백엔드 (SQLite)
+cd /home/od1225/albatrust
+./backend/venv/bin/python -m uvicorn index:app --app-dir api --port 8000
+
+# 프론트엔드 (다른 터미널)
+cd frontend && npm run dev   # http://localhost:3000
+```
+
+- 프론트는 개발 모드에서 `http://localhost:8000` 백엔드를 호출합니다.
+- 로컬에서 Postgres로 테스트하려면 `POSTGRES_URL` 환경변수를 설정한 뒤 백엔드를 실행하세요.
+
+## 참고
+
+- 로그인은 데모용(프론트 localStorage 기반)이라 실제 인증이 아닙니다. 공개 서비스로 쓰려면 인증을 별도로 붙여야 합니다.
+- `api/index.py` 가 백엔드 단일 소스입니다. (로컬 SQLite / 배포 Postgres 자동 전환)
