@@ -5,10 +5,10 @@
 echo "🚀 AlbaTrust 시작 중..."
 echo ""
 
-# 백엔드 실행
+# 백엔드 실행 (진입점: api/index.py)
 echo "📦 백엔드 서버 시작 (http://localhost:8000)..."
-cd "$(dirname "$0")/backend"
-python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 &
+ROOT="$(dirname "$0")"
+"$ROOT/backend/venv/bin/python" -m uvicorn index:app --app-dir "$ROOT/api" --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # 프론트엔드 실행

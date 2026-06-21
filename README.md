@@ -30,14 +30,12 @@ chmod +x start.sh
 
 ### 개별 실행
 
-**백엔드**
+**백엔드** (진입점: `api/index.py`)
 
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000
+python3 -m venv backend/venv
+backend/venv/bin/pip install -r requirements.txt
+backend/venv/bin/python -m uvicorn index:app --app-dir api --host 0.0.0.0 --port 8000
 ```
 
 **프론트엔드**
@@ -53,3 +51,8 @@ npm run dev
 - 프론트엔드: http://localhost:3000
 - 백엔드 API: http://localhost:8000
 - API 문서: http://localhost:8000/docs
+
+## 문서
+
+- [개발 문서 (DEVELOPMENT.md)](./DEVELOPMENT.md) — 구조, 실행, API, 데이터 모델
+- [배포 가이드 (DEPLOY.md)](./DEPLOY.md) — Vercel 배포
