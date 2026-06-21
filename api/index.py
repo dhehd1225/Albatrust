@@ -34,11 +34,14 @@ app.add_middleware(
 DATABASE_URL = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL")
 USE_PG = bool(DATABASE_URL)
 
-# 로컬 SQLite 파일 경로 (PG 미사용 시)
-DB_PATH = os.environ.get(
-    "DATABASE_PATH",
-    os.path.join(os.path.dirname(__file__), "..", "backend", "data", "albatrust.db"),
+# 로컬 SQLite 파일 경로 (PG 미사용 시).
+# Vercel 서버리스는 파일시스템이 읽기 전용이라 /tmp 만 쓰기 가능하다.
+_DEFAULT_DB = (
+    "/tmp/albatrust.db"
+    if os.environ.get("VERCEL")
+    else os.path.join(os.path.dirname(__file__), "..", "backend", "data", "albatrust.db")
 )
+DB_PATH = os.environ.get("DATABASE_PATH", _DEFAULT_DB)
 
 
 class CIRow(dict):
@@ -106,7 +109,7 @@ class DB:
             self.raw.close()
 
 
-def _get_db() -> DB:
+def _open_db() -> DB:
     if USE_PG:
         import psycopg
 
@@ -116,6 +119,24 @@ def _get_db() -> DB:
 
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return DB(sqlite3.connect(DB_PATH), False)
+
+
+_DB_READY = False
+
+
+def _get_db() -> DB:
+    """첫 사용 시 1회만 테이블을 보장한 뒤, 매번 새 연결을 돌려준다.
+
+    import 시점이 아니라 첫 요청 때 초기화하므로, DB가 아직 없거나
+    연결이 안 되어도 모듈 import(및 /api/health)는 실패하지 않는다.
+    """
+    global _DB_READY
+    if not _DB_READY:
+        with _open_db() as conn:
+            for statement in SCHEMA:
+                conn.execute(statement)
+        _DB_READY = True
+    return _open_db()
 
 
 AUTO_PK = "SERIAL PRIMARY KEY" if USE_PG else "INTEGER PRIMARY KEY AUTOINCREMENT"
@@ -214,12 +235,6 @@ SCHEMA = [
     )
     """,
 ]
-
-
-def _init_db():
-    with _get_db() as conn:
-        for statement in SCHEMA:
-            conn.execute(statement)
 
 
 # ---------------------------------------------------------------------------
@@ -978,10 +993,6 @@ def join_workplace(data: JoinWorkplace):
             )
 
         return _serialize_workplace_detail(workplace, conn)
-
-
-# 모듈 로드 시 테이블 보장 (서버리스 콜드스타트마다 idempotent하게 실행)
-_init_db()
 
 
 if __name__ == "__main__":
